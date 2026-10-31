@@ -14,17 +14,21 @@ typedef struct {
     int capacity;
 } DA;
 
-RLE_Token tok_array[TOK_ARRAY_MAX];
-int tok_array_count = 0;
-
 void encode_line(DA *d, char *str);
 
 DA da_init(int capacity);
 void da_append(DA *d, char c, int c_count);
 void da_grow(DA *d, int new_capacity);
 void da_destroy(DA *d);
-void da_print_full(DA d);
 
+void write_rle_file(DA *d) {
+    FILE *fp = fopen("enc.rle", "w");
+    char buf[1024];
+    for (int i = 0; i < d->count; i++) {
+        snprintf(buf, sizeof(buf), "%d%c", d->c->count, (d->c)[i].c);
+        fputs(buf, fp);
+    }
+}
 int read_file_input(int argc, char **argv, DA *d) {
     if (argc != 2) {
         printf("Error: Expected usage ./rle <file>\n");
@@ -45,7 +49,10 @@ int read_file_input(int argc, char **argv, DA *d) {
 
 int main(int argc, char **argv) {
     DA array = da_init(25);
-    read_file_input(argc, argv, &array);
+    if (read_file_input(argc, argv, &array) == 1) {
+        printf("Error: Some error occured in reading the file.\n");
+    }
+    write_rle_file(&array);
     da_destroy(&array);
     return 0;
 }
@@ -71,6 +78,10 @@ DA da_init(int capacity) {
     DA da = {.c = (RLE_Token *)malloc(capacity * sizeof(RLE_Token)),
              .count = 0,
              .capacity = capacity};
+    if (!(da.c)) {
+        printf("Error: Failed to allocate %d to array.\n", capacity);
+        exit(1);
+    }
     return da;
 }
 void da_append(DA *d, char c, int c_count) {
