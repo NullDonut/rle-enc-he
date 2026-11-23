@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define MAGIC "RLE1"
 
@@ -60,10 +61,80 @@ int encode_file(FILE *in, FILE *out, uint32_t *total) {
         return -1;
     return 0;
 }
-
+int decode_file(FILE *in, FILE *out) {
+    char magic[4];
+    uint32_t expected, written = 0;
+    if (fread(magic, 1, 4, in) != 4 || memcmp(magic, MAGIC, 4) != 0) {
+        return -1; // Bad magic
+    }
+    if (get_u32_le(in, &expected) != 0) {
+        fprintf(stderr, "Error: truncated header \n");
+        return -1;
+    }
+    for (;;) {
+        unsigned char b[5];
+        size_t n = fread(b, 1, 5, in);
+        if (n == 0)
+            break;
+        if (n != 5) {
+            fprintf(stderr, "Error: truncated record\n");
+            return -1;
+        }
+        uint32_t count = (uint32_t)b[0] | (uint32_t)b[1] << 8 |
+                         (uint32_t)b[2] << 16 | (uint32_t)b[3] << 24;
+        if (count == 0) {
+            fprintf(stderr, "Error: zero-length run \n");
+            return -1;
+        }
+        if (count > expected - written) {
+            fprintf(stderr, "Error: data exceeds header length\n");
+            return -1;
+        }
+        for (uint32_t i = 0; i < count; i++) {
+            if (fputc(b[4], out) == EOF) {
+                fprintf(stderr, "Error: write failed\n");
+                return -1;
+            }
+        }
+        written += count;
+    }
+    if (ferror(in)) {
+        fprintf(stderr, "Error: read failed\n");
+        return -1;
+    }
+    if (written != expected) {
+        fprintf(stderr, "Error: length mismatch (header %u , data %u)\n",
+                expected, written);
+        return -1;
+    }
+    return 0;
+}
 int main(int argc, char **argv) {
+    if (argc == 3 && strcmp(argv[1], "-d") == 0) {
+        const char *dec_out = "out.bin";
+        FILE *din = fopen(argv[2], "rb");
+        if (!din) {
+            perror(argv[2]);
+            return EXIT_FAILURE;
+        }
+        FILE *dout = fopen(dec_out, "wb");
+        if (!dout) {
+            perror(dec_out);
+            return EXIT_FAILURE;
+        }
+        int drc = decode_file(din, dout);
+        fclose(din);
+        if (fclose(dout) == EOF)
+            drc = -1;
+        if (drc != 0) {
+            remove(dec_out);
+            return EXIT_FAILURE;
+        }
+        return 0;
+    }
     if (argc != 2) {
-        fprintf(stderr, "Error: Expected usage: ./rle <file>\n");
+        fprintf(stderr,
+                "Error: Expected usage: ./rle <file> | ./rle -d <rle_file> \n");
         return EXIT_FAILURE;
     }
     const char *out_path = "enc.rle";

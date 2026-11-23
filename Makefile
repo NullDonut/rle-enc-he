@@ -5,4 +5,4 @@ rle:main.c
 	$(CC) $(CFLAGS) -o $@ writer.c
 
 clean:
-	rm -rf rle enc.rle
+	rm -rf rle enc.rle out.bin
