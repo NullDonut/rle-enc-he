@@ -9,8 +9,8 @@
 
 // Byte helpers
 int put_u32_le(FILE *fp, uint32_t v) {
-    unsigned char b[4] = {(unsigned char)v, (unsigned char)v >> 8,
-                          (unsigned char)v >> 16, (unsigned char)v >> 24};
+    unsigned char b[4] = {(unsigned char)v, (unsigned char)(v >> 8),
+                          (unsigned char)(v >> 16), (unsigned char)(v >> 24)};
     return fwrite(b, 1, 4, fp) == 4 ? 0 : -1;
 }
 int get_u32_le(FILE *fp, uint32_t *v) {
