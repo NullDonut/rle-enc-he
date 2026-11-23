@@ -1,0 +1,70 @@
+name : build-and-release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description:"Release tag to publish"
+        required:false 
+        default:""
+jobs:
+  native:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: linux-x64,   os: ubuntu-latest }
+          - { name: linux-arm64, os: ubuntu-24.04-arm }
+          - { name: macos-arm64, os: macos-latest }
+          - { name: macos-x64,   os: macos-15-intel }
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build and test (ASan/UBSan)
+        run: |
+          chmod +x test.sh
+          make clean
+          make test
+
+      - name: Build and test (release -O2)
+        run: |
+          make clean
+          make CFLAGS="-O2 -Wall -Wextra" rle
+          ./test.sh ./rle
+          mkdir -p dist
+          cp rle dist/rle-${{ matrix.name }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rle-${{ matrix.name }}
+          path: dist/rle-${{ matrix.name }}
+
+  big-endian:
+    name: linux-s390x (big-endian, emulated)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - name: Build and test under QEMU
+        run: |
+          chmod +x test.sh
+          docker run --rm --platform linux/s390x -v "$PWD":/w -w /w gcc:14 \
+            bash -c 'make CFLAGS="-O2 -Wall -Wextra" rle && ./test.sh ./rle'
+
+  release:
+    if: ${{ inputs.version != '' }}
+    needs: [native, big-endian]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.version }}
+          files: dist/*
