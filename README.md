@@ -1,13 +1,14 @@
 # rle-enc
 
 A small command-line run-length encoder/decoder in C. It works on arbitrary
-bytes (text, binary, NULs) and streams its input, so memory use stays flat on
-large files.
+bytes (text, binary, NULs) and streams its input and produces its own file in its own format (.rle) .
+
+There was a old implementation i made of RLE that didn't work on binary but worked on ascii.It is present in old impl folder and new binary one was made with idea of that.
 
 ## Build and test
 
 ```
-make          # builds ./rle with -Wall -Wextra and ASan/UBSan
+make          # builds ./rle with -Wall -Wextra 
 make test     # runs test.sh (round trips, boundaries, fuzzing, corrupt files)
 ```
 
@@ -38,7 +39,7 @@ The decoder rejects: a wrong magic, a truncated header or record, a run of
 length 0, a run that would exceed the header length, and a total that does not
 match the header length.
 
-## Compression
+## Compression / Result
 
 Every run costs 5 bytes regardless of its length, so v1 only saves space when
 runs are long (average more than 5 bytes).
@@ -50,7 +51,11 @@ runs are long (average more than 5 bytes).
 | C source text            |      3,517 |      14,598 |
 | 1 MB random bytes        |  1,000,000 |   4,980,808 |
 
-Ordinary text and random data expand by roughly 4-5x. A PackBits-style format
+Ordinary text and random data expand by roughly 4-5x.
+
+
+## TBD (To be done)
+A PackBits-style format
 (version 2) is planned to fix this.
 
 ## Limits
