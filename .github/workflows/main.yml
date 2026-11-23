@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description:"Release tag to publish"
-        required:false 
-        default:""
+        description: "Release tag to publish"
+        required: false 
+        default: ""
 jobs:
   native:
     name: ${{ matrix.name }}
