@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -fsanitize=address,undefined -Wextra -Wall -g
 
-rle:writer.c writer.h
+rle:writer.c 
 	$(CC) $(CFLAGS) -o $@ writer.c
 
 test: rle
