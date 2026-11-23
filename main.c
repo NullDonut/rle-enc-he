@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define TOK_ARRAY_MAX 10000000
+// #define TOK_ARRAY_MAX 10000000
 
 typedef struct {
     char c;
@@ -27,20 +27,24 @@ void write_rle_file(DA *d) {
     char *file_path = "enc.rle";
     FILE *fp = fopen(file_path, "w");
     if (!fp) {
-        printf("Error: Writing to encoded file : %s.", file_path);
+        printf("Error: Opening/Writing to encoded file : %s.", file_path);
+        exit(EXIT_FAILURE);
     }
     char buf[1024];
     for (int i = 0; i < d->count; i++) {
-        snprintf(buf, sizeof(buf), "%d%c", d->c[i].count, (d->c)[i].c);
-        fputs(buf, fp);
+        snprintf(buf, sizeof(buf), "%d%c", (d->c[i]).count, (d->c)[i].c);
+        if (fputs(buf, fp) == EOF) {
+            printf("Error: Failed writing a line due to End of file Error.");
+            fclose(fp);
+            return;
+        }
     }
-    fclose(fp);
+    if (fclose(fp) == EOF) {
+        printf("Error: Failed to close encoded file.\n");
+    }
 }
 int read_file_input(int argc, char **argv, DA *d) {
-    if (argc != 2) {
-        printf("Error: Expected usage ./rle <file>\n");
-        return 1;
-    }
+
     FILE *fp = fopen(argv[1], "r");
     if (!fp) {
         printf("Error: File not found\n");
@@ -55,9 +59,16 @@ int read_file_input(int argc, char **argv, DA *d) {
 }
 
 int main(int argc, char **argv) {
+    if (argc != 2) {
+        printf("Error: Expected usage: ./rle <file>\n");
+        return EXIT_FAILURE;
+    }
     DA array = da_init(25);
+
     if (read_file_input(argc, argv, &array) == 1) {
         printf("Error: Some error occured in reading the file.\n");
+        da_destroy(&array);
+        exit(EXIT_FAILURE);
     }
     write_rle_file(&array);
     da_destroy(&array);
@@ -71,14 +82,12 @@ void encode_line(DA *d, char *str) {
     for (int i = 0; i < str_len; i++) {
         if (c != str[i]) {
             da_append(d, c, count);
-            // append_tok_array(c, count);
             c = str[i];
             count = 0;
         }
         count += 1;
     }
     da_append(d, c, count);
-    // append_tok_array(c, count);
 }
 
 DA da_init(int capacity) {
