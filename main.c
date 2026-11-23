@@ -16,7 +16,13 @@ typedef struct {
     int capacity;
 } DA;
 
-void encode_line(DA *d, char *str);
+typedef struct {
+    char current_char;
+    int count;
+    int has_run;
+} EncoderState;
+
+void encode_line(DA *d, EncoderState *state, char *str);
 
 DA da_init(int capacity);
 void da_append(DA *d, char c, int c_count);
@@ -51,8 +57,12 @@ int read_file_input(int argc, char **argv, DA *d) {
         return 1;
     }
     char buf[1024];
+    EncoderState state = {0};
     while (fgets(buf, sizeof(buf), fp)) {
-        encode_line(d, buf);
+        encode_line(d, &state, buf);
+    }
+    if (state.has_run) {
+        da_append(d, state.current_char, state.count);
     }
     fclose(fp);
     return 0;
@@ -75,19 +85,21 @@ int main(int argc, char **argv) {
     return 0;
 }
 
-void encode_line(DA *d, char *str) {
+void encode_line(DA *d, EncoderState *state, char *str) {
     int str_len = strlen(str);
-    char c = str[0];
-    int count = 0;
     for (int i = 0; i < str_len; i++) {
-        if (c != str[i]) {
-            da_append(d, c, count);
-            c = str[i];
-            count = 0;
+        if (!state->has_run) {
+            state->current_char = str[i];
+            state->count = 1;
+            state->has_run = 1;
+        } else if (str[i] == state->current_char) {
+            state->count++;
+        } else {
+            da_append(d, state->current_char, state->count);
+            state->current_char = str[i];
+            state->count = 1;
         }
-        count += 1;
     }
-    da_append(d, c, count);
 }
 
 DA da_init(int capacity) {
