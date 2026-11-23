@@ -22,6 +22,17 @@ make test     # runs test.sh (round trips, boundaries, fuzzing, corrupt files)
 Errors go to stderr and the exit code is non-zero. A failed encode or decode
 removes its partially written output file.
 
+## Installation 
+- Get the release from the github releases.
+- Give it executable permissions.
+```
+chmod +x rle-linux-x64
+```
+- Run it :0
+```
+./rle-linux-x64
+```
+
 ## File format (version 1, magic `RLE1`)
 
 All integers are little-endian `uint32`.
