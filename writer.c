@@ -9,7 +9,8 @@
 
 // Byte helpers
 int put_u32_le(FILE *fp, uint32_t v) {
-    unsigned char b[4] = {v, v >> 8, v >> 16, v >> 24};
+    unsigned char b[4] = {(unsigned char)v, (unsigned char)v >> 8,
+                          (unsigned char)v >> 16, (unsigned char)v >> 24};
     return fwrite(b, 1, 4, fp) == 4 ? 0 : -1;
 }
 int get_u32_le(FILE *fp, uint32_t *v) {
@@ -66,6 +67,8 @@ int decode_file(FILE *in, FILE *out) {
     uint32_t expected, written = 0;
     if (fread(magic, 1, 4, in) != 4 || memcmp(magic, MAGIC, 4) != 0) {
         return -1; // Bad magic
+        fprintf(stderr, "Error: not a RLE1 file (bad magic) \n");
+        return -1;
     }
     if (get_u32_le(in, &expected) != 0) {
         fprintf(stderr, "Error: truncated header \n");
@@ -120,6 +123,7 @@ int main(int argc, char **argv) {
         FILE *dout = fopen(dec_out, "wb");
         if (!dout) {
             perror(dec_out);
+            fclose(din);
             return EXIT_FAILURE;
         }
         int drc = decode_file(din, dout);
@@ -144,8 +148,9 @@ int main(int argc, char **argv) {
         return EXIT_FAILURE;
     }
     FILE *out = fopen(out_path, "wb");
-    if (!in) {
+    if (!out) {
         perror(out_path);
+        fclose(in);
         return EXIT_FAILURE;
     }
 
