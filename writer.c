@@ -57,43 +57,43 @@ int encode_file(FILE *in, FILE *out, uint32_t *total) {
     if (ferror(in))
         return -3;
     if (has_run && emit_run(out, cur, run) != 0)
-        ;
+        return -1;
     return 0;
 }
-// Test conditions to check byte functions
-/**
-int main(void) {
-    uint32_t tests[] = {0, 1, 255, 256, 0x11223344, 0x80000000u,
-0xFFFFFFFFu}; size_t n = sizeof tests / sizeof tests[0]; FILE *f =
-fopen("t.bin", "wb"); if (!f) { perror("t.bin"); return EXIT_FAILURE;
+
+int main(int argc, char **argv) {
+    if (argc != 2) {
+        fprintf(stderr, "Error: Expected usage: ./rle <file>\n");
+        return EXIT_FAILURE;
     }
-    for (int i = 0; i < n; i++) {
-        if (put_u32_le(f, tests[i]) != 0) {
-            fprintf(stderr, "write failed.\n");
-            return EXIT_FAILURE;
-        }
+    const char *out_path = "enc.rle";
+    FILE *in = fopen(argv[1], "rb");
+    if (!in) {
+        perror(argv[1]);
+        return EXIT_FAILURE;
     }
-    if (fclose(f) == EOF) {
-        perror("close");
+    FILE *out = fopen(out_path, "wb");
+    if (!in) {
+        perror(out_path);
         return EXIT_FAILURE;
     }
 
-    f = fopen("t.bin", "rb");
-    if (!f) {
-        perror("t.bin");
+    uint32_t total = 0;
+    int rc = -1;
+    if (fwrite(MAGIC, 1, 4, out) == 4 && put_u32_le(out, 0) == 0)
+        rc = encode_file(in, out, &total);
+    fclose(in);
+
+    if (rc == 0) {
+        if (fseek(out, 4, SEEK_SET) != 0 || put_u32_le(out, total) != 0)
+            rc = -1;
+    }
+    if (fclose(out) == EOF)
+        rc = -1;
+    if (rc != 0) {
+        fprintf(stderr, "Error: encoding failed (code %d)\n", rc);
+        remove(out_path);
         return EXIT_FAILURE;
     }
-    for (size_t i = 0; i < n; i++) {
-        uint32_t v;
-        if (get_u32_le(f, &v) != 0) {
-            fprintf(stderr, "read failed at %zu\n", i);
-            return EXIT_FAILURE;
-        }
-        printf("%08x %s\n", v, v == tests[i] ? "ok" : "MISMATCH");
-    }
-    uint32_t extra;
-    printf("read past end:%d (expect -1)\n", get_u32_le(f, &extra));
-    fclose(f);
     return 0;
 }
-**/
