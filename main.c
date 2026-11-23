@@ -4,6 +4,7 @@
 #include <string.h>
 
 #define TOK_ARRAY_MAX 10000000
+
 typedef struct {
     char c;
     int count;
@@ -23,12 +24,17 @@ void da_grow(DA *d, int new_capacity);
 void da_destroy(DA *d);
 
 void write_rle_file(DA *d) {
-    FILE *fp = fopen("enc.rle", "w");
+    char *file_path = "enc.rle";
+    FILE *fp = fopen(file_path, "w");
+    if (!fp) {
+        printf("Error: Writing to encoded file : %s.", file_path);
+    }
     char buf[1024];
     for (int i = 0; i < d->count; i++) {
-        snprintf(buf, sizeof(buf), "%d%c", d->c->count, (d->c)[i].c);
+        snprintf(buf, sizeof(buf), "%d%c", d->c[i].count, (d->c)[i].c);
         fputs(buf, fp);
     }
+    fclose(fp);
 }
 int read_file_input(int argc, char **argv, DA *d) {
     if (argc != 2) {
